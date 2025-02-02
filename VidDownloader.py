@@ -14,10 +14,10 @@ from .. import loader, utils
 from telethon.tl.types import DocumentAttributeAudio, MessageMediaDocument, DocumentAttributeVideo
 
 
-class vidDownloaderMod(loader.Module):
+class VidDownloaderMod(loader.Module):
     """Обрабатывает видео по ссылке в инлайн режиме"""
 
-    strings = {"name": "vidDownloader"}
+    strings = {"name": "VidDownloader"}
 
     async def musiccmd(self, message):
         """ [ссылки на видео/ответ на сообщение с ссылками]. Скачивает и конвертирует видео в аудиофайл."""
