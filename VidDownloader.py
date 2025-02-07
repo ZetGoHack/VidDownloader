@@ -197,7 +197,7 @@ class VidDownloaderMod(loader.Module):
             return
         status_message = await message.respond(f"Начинаю обработку ссылки: {clean_url}\nСкачивание: [⌛] Обработка: [ ] Отправка: [ ]")
         start_time = time.time()
-        file_info = await self.download_video(clean_url)
+        file_info = await self.download_video(clean_url, message)
         if file_info:
             end_time = time.time()
             down_time = end_time - start_time
@@ -229,7 +229,7 @@ class VidDownloaderMod(loader.Module):
         else:
             await status_message.edit(f"Ошибка при скачивании видео: {clean_url}. Ошибка выше")
 
-    async def download_video(self, url):
+    async def download_video(self, url, message):
         """Скачиваем видео с YouTube"""
         temp_dir = tempfile.mkdtemp()
         filename_base = self.extract_filename_from_url(url)
