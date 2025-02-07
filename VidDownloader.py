@@ -227,7 +227,7 @@ class VidDownloaderMod(loader.Module):
             else:
                 await status_message.edit(f"Ошибка при обработке ссылки: {clean_url}")
         else:
-            await status_message.edit(f"Ошибка при скачивании видео: {clean_url}")
+            await status_message.edit(f"Ошибка при скачивании видео: {clean_url}. Ошибка выше")
 
     async def download_video(self, url):
         """Скачиваем видео с YouTube"""
@@ -251,7 +251,7 @@ class VidDownloaderMod(loader.Module):
             else:
                 return None
         except Exception as e:
-            print(e)
+            await message.respond(f"Ошибка во время скачивания: {e}")
             return None
 
     async def convert_to_mp3(self, file_info, status_message):
