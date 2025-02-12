@@ -113,7 +113,7 @@ class VidDownloaderMod(loader.Module):
                     if self.chsn != 'mp3':
                         await self.client.send_message(
                             utils.get_chat_id(self.message),
-                            filename, force_document=False,
+                            file=filename, force_document=False,
                             attributes=[
                                 DocumentAttributeVideo(duration=duration, h=height, w=width)],
                          )
@@ -133,19 +133,20 @@ class VidDownloaderMod(loader.Module):
                         if process.returncode == 0 and os.path.exists(mp3):
                             await self.client.send_message(
                             utils.get_chat_id(self.message),
-                            mp3,
+                            file=mp3,
                             attributes=[
                                 DocumentAttributeAudio(duration=duration, title=title, performer=channel)],
                         )
+                            await inlmessage.delete()
                         else:
                             await inlmessage.edit(text=f"Ошибка при конвертации в MP3. Код ошибки: {process.returncode}")
                         
                     await self.clean_directory(filename)
                 except Exception as e:
-                    await self.message.respond(str(e))
+                    await self.message.respond("шибка "str(e))
                     await self.clean_directory(filename)
             else:
-                await call.delete()
+                await inlmessage.delete()
         except Exception as e:
             await self.message.respond(f"Что-то не так, ошибка: {e}")
         
