@@ -147,7 +147,7 @@ class VidDownloaderMod(loader.Module):
             else:
                 await call.delete()
         except Exception as e:
-            await message.respond(f"Что-то не так, ошибка: {e}")
+            await self.message.respond(f"Что-то не так, ошибка: {e}")
         
         
     async def handle_callback(self, call, gotten):
