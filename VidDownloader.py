@@ -104,7 +104,7 @@ class VidDownloaderMod(loader.Module):
                 duration = info_dict.get('duration', 0)
                 resolution = info_dict.get('resolution', '0x0')
                 channel = info_dict.get('channel', 'неизвестен')
-            if humanfrmt != 'mp3':
+            if self.chsn != 'mp3':
                 width, height = map(int, resolution.split('x'))
             
             if os.path.exists(filename):
