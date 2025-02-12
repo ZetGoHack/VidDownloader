@@ -104,8 +104,8 @@ class VidDownloaderMod(loader.Module):
                 duration = info_dict.get('duration', 0)
                 resolution = info_dict.get('resolution', '0x0')
                 channel = info_dict.get('channel', 'неизвестен')
-                
-            width, height = map(int, resolution.split('x'))
+            if humanfrmt != 'mp3':
+                width, height = map(int, resolution.split('x'))
             
             if os.path.exists(filename):
                 await inlmessage.edit(text=f"☑️ {'Видео скачано' if humanfrmt != 'mp3' else 'Музыка скачана'}, жди {'окончания обработки и' if humanfrmt == 'mp3' else ''} выгрузки!")
