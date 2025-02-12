@@ -143,7 +143,7 @@ class VidDownloaderMod(loader.Module):
                         
                     await self.clean_directory(filename)
                 except Exception as e:
-                    await self.message.respond("шибка "str(e))
+                    await self.message.respond(f"шибка {str(e)}")
                     await self.clean_directory(filename)
             else:
                 await inlmessage.delete()
