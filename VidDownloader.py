@@ -108,7 +108,7 @@ class VidDownloaderMod(loader.Module):
                 width, height = map(int, resolution.split('x'))
             
             if os.path.exists(filename):
-                await inlmessage.edit(text=f"☑️ {'Видео скачано' if self.chsn != 'mp3' else 'Музыка скачана'}, жди {'окончания обработки и' if humanfrmt == 'mp3' else ''} выгрузки!")
+                await inlmessage.edit(text=f"☑️ {'Видео скачано' if self.chsn != 'mp3' else 'Музыка скачана'}, жди {'окончания обработки и' if self.chsn == 'mp3' else ''} выгрузки!")
                 try:
                     if self.chsn != 'mp3':
                         await self.client.send_message(
