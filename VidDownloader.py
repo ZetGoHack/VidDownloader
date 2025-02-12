@@ -19,35 +19,6 @@ class VidDownloaderMod(loader.Module):
 
     strings = {"name": "VidDownloader"}
 
-    # async def musiccmd(self, message):
-    #     """ [ссылки на видео/ответ на сообщение с ссылками]. Скачивает и конвертирует видео в аудиофайл."""
-    #     urls = []
-    #     if message.is_reply:
-    #         reply_msg = await message.get_reply_message()
-    #         urls = self.extract_urls(reply_msg.raw_text)
-    #     if not urls:
-    #         args = message.raw_text.split(maxsplit=1)
-    #         if len(args) > 1:
-    #             urls = self.extract_urls(args[1])
-    #     if not urls:
-    #         await message.respond("Пожалуйста, укажите хотя бы одну ссылку")
-    #         return
-
-    #     for url in urls:
-    #         await self.process_video(url, message)
-
-    async def videocmd(self, message):
-        """ [видеофайл/ответ]. Конвертация в аудиофайл прикреплённого видео или ответа на сообщение с видео"""
-        if message.is_reply:
-            reply_msg = await message.get_reply_message()
-            if reply_msg and isinstance(reply_msg.media, MessageMediaDocument):
-                await self.process_attached_video(reply_msg, message)
-                return
-        if isinstance(message.media, MessageMediaDocument):
-            await self.process_attached_video(message, message)
-        else:
-            await message.respond("Пожалуйста, прикрепите видео или ответьте на сообщение с видео.")
-
     async def getvidcmd(self, message):
         """ [одна ссылка]. Выгрузка видео в указанном качестве"""
         url = [] #предполагается одна ссылка, но поставлю счётчик чтобы сказать если что "пажалста"
