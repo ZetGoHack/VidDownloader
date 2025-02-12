@@ -131,7 +131,7 @@ class VidDownloaderMod(loader.Module):
                         stdout, stderr = await process.communicate()
         
                         if process.returncode == 0 and os.path.exists(file):
-                            await self.message.client.send_file(
+                            await self.client.send_message(
                             utils.get_chat_id(self.message),
                             mp3,
                             attributes=[
