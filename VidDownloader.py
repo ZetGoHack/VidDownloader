@@ -21,27 +21,26 @@ class VidDownloaderMod(loader.Module):
 
     async def getvidcmd(self, message):
         """ [одна ссылка]. Выгрузка видео в указанном качестве"""
-        url = [] #предполагается одна ссылка, но поставлю счётчик чтобы сказать если что "пажалста"
+        url = []
         self.don = False
         self.message = message
-        args = message.raw_text.split(maxsplit=1)
+        args = self.message.raw_text.split(maxsplit=1)
         if len(args) > 1:
             url = self.extract_urls(args[1])
         if len(url) > 1:
-            await message.respond("Я принимаю только одну ссылку. Берём первую.")
+            await self.message.respond("Я принимаю только одну ссылку. Берём первую.")
         if not url:
-            await message.respond("Пожалуйста, укажите ссылку на видео")
+            await self.message.respond("Пожалуйста, укажите ссылку на видео")
             return
         url = url[0]
         self.url = url
-        tempM = await message.respond("🔍 Получаю информацию о видео...")
+        tempM = await self.message.respond("🔍 Получаю информацию о видео...")
         txt, self.titl, e = self.getInfo(url)
         if not txt:
             await tempM.edit(f"❎ Ничего не вышло, ошибка: {e}")
             return
         await tempM.edit("☑️ Готово! Строю меню...")
-        await self.Menu(txt, message, tempM)
-        
+        await self.Menu(txt, tempM)
         
     def getInfo(self, u):
         """Узнаю основную информацию об обрабатывемом видео"""
@@ -67,7 +66,7 @@ class VidDownloaderMod(loader.Module):
             print(e)
             return None, None, e
         
-    async def Menu(self, ids, message, toDelete):
+    async def Menu(self, ids, toDelete):
         """Построение меню с кнопками выбора качества"""
         text = f"▶️ Видео: '{self.titl}'. \n\nВыберите формат."
         frmts_btn = []
@@ -76,14 +75,14 @@ class VidDownloaderMod(loader.Module):
         for id in ids:
             counter += 1
             frmts_btn.append({"text": id['format_note'], "callback": self.handle_callback, 'args' : (f"format:{id['format_id']}f:{id['format_note']}",)})
-            if counter <=3:
+            if counter == 3:
                 self.key.append(frmts_btn)
                 counter = 0
                 frmts_btn = []
-        self.key.append([{'text' : 'mp3','callback' : 'self.handle_callback', 'args' : ('mp3',)}])
+        self.key.append([{'text' : 'mp3','callback' : self.handle_callback, 'args' : ('format:mp3f:mp3',)}])
         await self.inline.form(
             text=text, 
-            message=message,
+            message=self.message,
             reply_markup=self.key
         )
         await toDelete.delete()
@@ -157,17 +156,17 @@ class VidDownloaderMod(loader.Module):
         
         
     async def handle_callback(self, call, gotten):
-        """Обработка кнопки(потом переделаю)"""
-        #await self.message.respond(f"Получено: {call} и {gotten}")
-        frmt = call.split("format:")[1].split("f:")[0]
-        humanfrmt = call.split("f:")[1]
+        """Обработка кнопки"""
+        #await self.message.respond(f"Получено:\n {call} и {gotten}")
+        frmt = gotten.split("format:")[1].split("f:")[0]
+        humanfrmt = gotten.split("f:")[1]
         self.chsn = frmt
         text = f"<emoji document_id=5334681713316479679>📱</emoji> Видео: '{self.titl}'.\n\nВы выбрали формат: {humanfrmt if humanfrmt == 'mp3' else 'mp4'}.\n\n<emoji document_id=5264971795647184318>🐇</emoji> Вы выбрали качество: {'Только звук' if humanfrmt == 'mp3' else humanfrmt}"
         downbtn = [{"text": "Скачать", "callback": self.downl_choosn}]
         if not self.don:
             self.key.append(downbtn)
             self.don = True
-        await gotten.edit(text=text,reply_markup=self.key)
+        await call.edit(text=text,reply_markup=self.key)
     
     def extract_urls(self, text):
         """Получаем ссылки"""
