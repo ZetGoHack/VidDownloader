@@ -75,12 +75,12 @@ class VidDownloaderMod(loader.Module):
         counter = 0
         for id in ids:
             counter += 1
-            frmts_btn.append({"text": id['format_note'], "callback": partial(self.handle_callback, f"format:{id['format_id']}f:{id['format_note']}")})
+            frmts_btn.append({"text": id['format_note'], "callback": self.handle_callback, 'args' : (f"format:{id['format_id']}f:{id['format_note']}",)})
             if counter <=3:
                 self.key.append(frmts_btn)
                 counter = 0
                 frmts_btn = []
-        self.key.append([{'format_id' : 'mp3', 'format_note' : 'mp3'}])
+        self.key.append([{'text' : 'mp3','callback' : 'self.handle_callback', 'args' : ('mp3',)}])
         await self.inline.form(
             text=text, 
             message=message,
