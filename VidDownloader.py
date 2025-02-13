@@ -28,8 +28,7 @@ class VidDownloaderMod(loader.Module):
         if len(args) > 1:
             url = self.extract_urls(args[1])
         if len(url) > 1:
-            await message.respond("Не больше одной ссылки, пожалуйста")
-            return
+            await message.respond("Я принимаю только одну ссылку. Берём первую.")
         if not url:
             await message.respond("Пожалуйста, укажите ссылку на видео")
             return
@@ -56,7 +55,7 @@ class VidDownloaderMod(loader.Module):
                 title = info_dict.get('title', 'unknown_title')
                 channel = info_dict.get('channel', 'Ошибка')
                 formats = info_dict.get("formats", [])
-            settext = [{'format_id' : 'mp3', 'format_note' : 'mp3'}]
+            settext = []
             collected = []
             for frmt in formats:
                 if frmt.get('ext') == 'mp4' and frmt.get('format_note') and frmt.get('audio_codec') in [None,'none'] and frmt['format_note'] not in collected and frmt.get('format_note') not in ('Default','Premium'):
@@ -73,9 +72,15 @@ class VidDownloaderMod(loader.Module):
         text = f"▶️ Видео: '{self.titl}'. \n\nВыберите формат."
         frmts_btn = []
         self.key = []
+        counter = 0
         for id in ids:
+            counter += 1
             frmts_btn.append({"text": id['format_note'], "callback": partial(self.handle_callback, f"format:{id['format_id']}f:{id['format_note']}")})
-        self.key.append(frmts_btn)
+            if counter <=3:
+                self.key.append(frmts_btn)
+                counter = 0
+                frmts_btn = []
+        self.key.append([{'format_id' : 'mp3', 'format_note' : 'mp3'}])
         await self.inline.form(
             text=text, 
             message=message,
