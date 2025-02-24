@@ -19,59 +19,28 @@ class VidDownloaderMod(loader.Module):
 
     strings = {"name": "VidDownloader"}
 
-    async def musiccmd(self, message):
-        """ [ссылки на видео/ответ на сообщение с ссылками]. Скачивает и конвертирует видео в аудиофайл."""
-        urls = []
-        if message.is_reply:
-            reply_msg = await message.get_reply_message()
-            urls = self.extract_urls(reply_msg.raw_text)
-        if not urls:
-            args = message.raw_text.split(maxsplit=1)
-            if len(args) > 1:
-                urls = self.extract_urls(args[1])
-        if not urls:
-            await message.respond("Пожалуйста, укажите хотя бы одну ссылку")
-            return
-
-        for url in urls:
-            await self.process_video(url, message)
-
-    async def videocmd(self, message):
-        """ [видеофайл/ответ]. Конвертация в аудиофайл прикреплённого видео или ответа на сообщение с видео"""
-        if message.is_reply:
-            reply_msg = await message.get_reply_message()
-            if reply_msg and isinstance(reply_msg.media, MessageMediaDocument):
-                await self.process_attached_video(reply_msg, message)
-                return
-        if isinstance(message.media, MessageMediaDocument):
-            await self.process_attached_video(message, message)
-        else:
-            await message.respond("Пожалуйста, прикрепите видео или ответьте на сообщение с видео.")
-
     async def getvidcmd(self, message):
         """ [одна ссылка]. Выгрузка видео в указанном качестве"""
-        url = [] #предполагается одна ссылка, но поставлю счётчик чтобы сказать если что "пажалста"
+        url = []
         self.don = False
         self.message = message
-        args = message.raw_text.split(maxsplit=1)
+        args = self.message.raw_text.split(maxsplit=1)
         if len(args) > 1:
             url = self.extract_urls(args[1])
         if len(url) > 1:
-            await message.respond("Не больше одной ссылки, пожалуйста")
-            return
+            await self.message.respond("Я принимаю только одну ссылку. Берём первую.")
         if not url:
-            await message.respond("Пожалуйста, укажите ссылку на видео")
+            await self.message.respond("Пожалуйста, укажите ссылку на видео")
             return
         url = url[0]
         self.url = url
-        tempM = await message.respond("🔍 Получаю информацию о видео...")
+        tempM = await self.message.respond("🔍 Получаю информацию о видео...")
         txt, self.titl, e = self.getInfo(url)
         if not txt:
             await tempM.edit(f"❎ Ничего не вышло, ошибка: {e}")
             return
         await tempM.edit("☑️ Готово! Строю меню...")
-        await self.Menu(txt, message, tempM)
-        
+        await self.Menu(txt, tempM)
         
     def getInfo(self, u):
         """Узнаю основную информацию об обрабатывемом видео"""
@@ -97,27 +66,33 @@ class VidDownloaderMod(loader.Module):
             print(e)
             return None, None, e
         
-    async def Menu(self, ids, message, toDelete):
+    async def Menu(self, ids, toDelete):
         """Построение меню с кнопками выбора качества"""
-        text = f"▶️ Видео: '{self.titl}'.\n\nВы выбрали формат: mp4."
+        text = f"▶️ Видео: '{self.titl}'. \n\nВыберите формат."
         frmts_btn = []
         self.key = []
+        counter = 0
         for id in ids:
-            frmts_btn.append({"text": id['format_note'], "callback": partial(self.handle_callback, f"format:{id['format_id']}f:{id['format_note']}")})
-        self.key.append(frmts_btn)
+            counter += 1
+            frmts_btn.append({"text": id['format_note'], "callback": self.handle_callback, 'args' : (f"format:{id['format_id']}f:{id['format_note']}",)})
+            if counter == 3:
+                self.key.append(frmts_btn)
+                counter = 0
+                frmts_btn = []
+        self.key.append([{'text' : 'mp3','callback' : self.handle_callback, 'args' : ('format:mp3f:mp3',)}])
         await self.inline.form(
             text=text, 
-            message=message,
+            message=self.message,
             reply_markup=self.key
         )
         await toDelete.delete()
         
 
     async def downl_choosn(self, inlmessage):
-        """Скачиваем видео"""
+        """Скачиваем"""
         temp_dir = tempfile.mkdtemp()
         filename_base = self.extract_filename_from_url(self.url)
-        fmt = f"{self.chsn}+bestaudio"
+        fmt = f'{self.chsn}+bestaudio' if self.chsn != 'mp3' else 'bestaudio/best'
         ydl_opts = {
             'format': fmt,
             'outtmpl': os.path.join(temp_dir, f'{filename_base}.%(ext)s'),
@@ -127,45 +102,71 @@ class VidDownloaderMod(loader.Module):
             await inlmessage.edit(text="⌛")
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info_dict = ydl.extract_info(self.url, download=True)
+                title = info_dict.get('title', 'unknown_title')
                 ext = info_dict.get('ext', 'webm')
                 filename = os.path.join(temp_dir, f"{filename_base}.{ext}")
                 duration = info_dict.get('duration', 0)
                 resolution = info_dict.get('resolution', '0x0')
-                
-                
-            width, height = map(int, resolution.split('x'))
+                channel = info_dict.get('channel', 'неизвестен')
+            if self.chsn != 'mp3':
+                width, height = map(int, resolution.split('x'))
             
             if os.path.exists(filename):
-                await inlmessage.edit(text="☑️ Видео скачано, жди выгрузки!")
+                await inlmessage.edit(text=f"☑️ {'Видео скачано' if self.chsn != 'mp3' else 'Музыка скачана'}, жди {'окончания обработки и' if self.chsn == 'mp3' else ''} выгрузки!")
                 try:
-                    await self.client.send_message(
-                    utils.get_chat_id(self.message),
-                    file=filename, force_document=False,
-                     attributes=[
-                         DocumentAttributeVideo(duration=duration, h=height, w=width)],
-                     )
+                    if self.chsn != 'mp3':
+                        await self.client.send_message(
+                            utils.get_chat_id(self.message),
+                            file=filename, force_document=False,
+                            attributes=[
+                                DocumentAttributeVideo(duration=duration, h=height, w=width)],
+                         )
+                    else:
+                        ffmpeg_location = shutil.which("ffmpeg")
+                        if not ffmpeg_location:
+                            raise FileNotFoundError("FFmpeg не найден. Установите его.")
+                        mp3 = filename.replace(os.path.splitext(filename)[1], ".mp3")
+                        ffmpeg_command = f'{ffmpeg_location} -i "{filename}" -vn -ar 44100 -ac 2 -b:a 192k "{mp3}"'
+                        process = await asyncio.create_subprocess_shell(
+                            ffmpeg_command,
+                            stdout=asyncio.subprocess.PIPE,
+                            stderr=asyncio.subprocess.PIPE
+                        )
+                        stdout, stderr = await process.communicate()
+        
+                        if process.returncode == 0 and os.path.exists(mp3):
+                            await self.client.send_message(
+                            utils.get_chat_id(self.message),
+                            file=mp3,
+                            attributes=[
+                                DocumentAttributeAudio(duration=duration, title=title, performer=channel)],
+                        )
+                            await inlmessage.delete()
+                        else:
+                            await inlmessage.edit(text=f"Ошибка при конвертации в MP3. Код ошибки: {process.returncode}")
+                        
                     await self.clean_directory(filename)
                 except Exception as e:
-                    await self.message.respond(str(e))
+                    await self.message.respond(f"шибка {str(e)}")
                     await self.clean_directory(filename)
             else:
-                await call.delete()
+                await inlmessage.delete()
         except Exception as e:
-            await message.respond(f"Что-то не так, ошибка: {e}")
+            await self.message.respond(f"Что-то не так, ошибка: {e}")
         
         
     async def handle_callback(self, call, gotten):
-        """Обработка кнопки(потом переделаю)"""
-        #await self.message.respond(f"Получено: {call} и {gotten}")
-        frmt = call.split("format:")[1].split("f:")[0]
-        humanfrmt = call.split("f:")[1]
+        """Обработка кнопки"""
+        #await self.message.respond(f"Получено:\n {call} и {gotten}")
+        frmt = gotten.split("format:")[1].split("f:")[0]
+        humanfrmt = gotten.split("f:")[1]
         self.chsn = frmt
-        text = f"<emoji document_id=5334681713316479679>📱</emoji> Видео: '{self.titl}'.\n\nВы выбрали формат: mp4.\n\n<emoji document_id=5264971795647184318>🐇</emoji> Вы выбрали качество: {humanfrmt}"
+        text = f"<emoji document_id=5334681713316479679>📱</emoji> Видео: '{self.titl}'.\n\nВы выбрали формат: {humanfrmt if humanfrmt == 'mp3' else 'mp4'}.\n\n<emoji document_id=5264971795647184318>🐇</emoji> Вы выбрали качество: {'Только звук' if humanfrmt == 'mp3' else humanfrmt}"
         downbtn = [{"text": "Скачать", "callback": self.downl_choosn}]
         if not self.don:
             self.key.append(downbtn)
             self.don = True
-        await gotten.edit(text=text,reply_markup=self.key)
+        await call.edit(text=text,reply_markup=self.key)
     
     def extract_urls(self, text):
         """Получаем ссылки"""
@@ -173,13 +174,6 @@ class VidDownloaderMod(loader.Module):
             return []
         urls = re.split(r'[;, \n]+', text.strip())
         return [url.strip() for url in urls if url.strip()]
-
-    def clean_youtube_url(self, url):
-        """Нам нужен только ютуб"""
-        parsed_url = urlparse(url)
-        if "youtube" in parsed_url.netloc or "youtu.be" in parsed_url.netloc:
-            return url  
-        return None
 
     def extract_filename_from_url(self, url):
         """Получаем айди видео для названия файла"""
@@ -189,171 +183,6 @@ class VidDownloaderMod(loader.Module):
             return query_params.get('v', ['unknown'])[0]
         else:
             return os.path.basename(parsed_url.path)
-
-    async def process_video(self, url, message):
-        """Обрабатываем видео по ссылке"""
-        clean_url = self.clean_youtube_url(url)
-        if not clean_url:
-            return
-        status_message = await message.respond(f"Начинаю обработку ссылки: {clean_url}\nСкачивание: [⌛] Обработка: [ ] Отправка: [ ]")
-        start_time = time.time()
-        file_info = await self.download_video(clean_url, message)
-        if file_info:
-            end_time = time.time()
-            down_time = end_time - start_time
-            await status_message.edit(f"Скачивание: [✅] Обработка: [⌛] Отправка: [ ]\nПрошло времени[На скачивание]: {down_time:.2f} секунд")
-            start_time = time.time()
-            file_path, duration, title, channel = await self.convert_to_mp3(file_info, status_message)
-            
-            if file_path:
-                file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
-                end_time = time.time()
-                ffmpeg_time = end_time - start_time
-                await status_message.edit(f"Скачивание: [✅] Обработка: [✅] Отправка: [⌛]\nРазмер файла: {file_size_mb:.2f} МБ\nПрошло времени[На скачивание]: {down_time:.2f} секунд\nПрошло времени[На обработку]: {ffmpeg_time:.2f} секунд")
-                start_time = time.time()
-                await message.client.send_file(
-                    message.chat_id,
-                    file_path,
-                    attributes=[DocumentAttributeAudio(duration=duration, title=title,performer=channel)],
-                )
-                os.remove(file_path)
-                end_time = time.time()
-                send_time = end_time - start_time
-                me = await self._client.get_me()
-                user_id = me.id
-                await status_message.edit(f"Скачивание: [✅] Обработка: [✅] Отправка: [✅]\nРазмер файла: {file_size_mb:.2f} МБ\nПрошло времени[На скачивание]: {down_time:.2f} секунд\nПрошло времени[На обработку]: {ffmpeg_time:.2f} секунд\nПрошло времени[На отправку]: {send_time:.2f} секунд")
-                #await self._client.send_message(user_id,f"Скачивание: [✅] Обработка: [✅] Отправка: [✅]\nРазмер файла: {file_size_mb:.2f} МБ\nПрошло времени[На скачивание]: {down_time:.2f} секунд\nПрошло времени[На обработку]: {ffmpeg_time:.2f} секунд\nПрошло времени[На отправку]: {send_time:.2f} секунд")
-                await self.clean_directory(os.path.dirname(file_path), status_message)
-            else:
-                await status_message.edit(f"Ошибка при обработке ссылки: {clean_url}")
-        else:
-            await status_message.edit(f"Ошибка при скачивании видео: {clean_url}. Ошибка ниже")
-
-    async def download_video(self, url, message):
-        """Скачиваем видео с YouTube"""
-        temp_dir = tempfile.mkdtemp()
-        filename_base = self.extract_filename_from_url(url)
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'outtmpl': os.path.join(temp_dir, f'{filename_base}.%(ext)s'),
-            'no_warnings': True,
-        }
-        try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info_dict = ydl.extract_info(url, download=True)
-                title = info_dict.get('title', 'unknown_title')
-                ext = info_dict.get('ext', 'webm')
-                filename = os.path.join(temp_dir, f"{filename_base}.{ext}")
-                duration = info_dict.get('duration', 0)
-                channel = info_dict.get('channel', 'неизвестен')
-            if os.path.exists(filename):
-                return filename, duration, title, channel
-            else:
-                return None
-        except Exception as e:
-            await message.respond(f"Ошибка во время скачивания: {e}")
-            return None
-
-    async def convert_to_mp3(self, file_info, status_message):
-        """Конвертируем видео в MP3"""
-        #ffmpeg_location = "/usr/bin/ffmpeg"
-        ffmpeg_location = shutil.which("ffmpeg")
-        if not ffmpeg_location:
-            raise FileNotFoundError("FFmpeg не найден. Установите его.")
-        video_file, duration, title, channel = file_info
-        output_mp3_path = video_file.replace(os.path.splitext(video_file)[1], ".mp3")
-        ffmpeg_command = f'{ffmpeg_location} -i "{video_file}" -vn -ar 44100 -ac 2 -b:a 192k "{output_mp3_path}"'
-        
-        process = await asyncio.create_subprocess_shell(
-            ffmpeg_command,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-        stdout, stderr = await process.communicate()
-        
-        if process.returncode == 0 and os.path.exists(output_mp3_path):
-            os.remove(video_file)
-            return output_mp3_path, duration, title, channel
-        else:
-            await status_message.edit(f"Ошибка при конвертации видео в MP3. Код ошибки: {process.returncode}")
-            return None
-
-
-    async def process_attached_video(self, video_message, message):
-        """Обрабатываем видео"""
-        status_message = await message.respond("Начинаю обработку видео\nСкачивание: [⌛] Обработка: [ ] Отправка: [ ]")
-        
-        start_time = time.time()
-        file_info = await self.download_and_convert_video_to_mp3(video_message, status_message, start_time)
-        if file_info:
-            
-
-            file_path, duration, title, down_time, ff_time = file_info
-            file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
-            start_time = time.time()
-            await message.client.send_file(
-                message.chat_id,
-                file_path,
-                attributes=[DocumentAttributeAudio(duration=duration, title=title or "VidToMusic @last_mimi")],
-            )
-            end_time = time.time()
-            send_time = end_time - start_time
-            me = await self._client.get_me()
-            user_id = me.id
-            await self._client.send_message(user_id,f"Скачивание: [✅] Обработка: [✅] Отправка: [✅]\nРазмер файла: {file_size_mb:.2f} МБ\nПрошло времени[На скачивание]: {down_time:.2f} секунд\nПрошло времени[На обработку]: {ff_time:.2f} секунд\nПрошло времени[На отправку]: {send_time:.2f} секунд")
-
-            os.remove(file_path)
-            await self.clean_directory(os.path.dirname(file_path), status_message, '.mp3')
-        else:
-            await status_message.edit("Ошибка при обработке видео")
-
-    async def download_and_convert_video_to_mp3(self, video_message, status_message, start_time):
-        """Скачивает видео из сообщения и конвертирует в MP3"""
-        temp_dir = tempfile.mkdtemp()
-        
-        try:
-            passed = False
-            video_file = await video_message.download_media(file=temp_dir)
-            if not video_file:
-                await status_message.edit("Ошибка при скачивании видео.")
-                return None
-            end_time = time.time()
-            down_time = end_time - start_time
-            await status_message.edit(f"Скачивание: [✅] Обработка: [⌛] Отправка: [ ]\nПрошло времени[На скачивание]: {down_time:.2f} секунд")
-            
-            
-            start_time = time.time()
-            ffmpeg_location = shutil.which("ffmpeg")
-            if not ffmpeg_location:
-                raise FileNotFoundError("FFmpeg не найден. Установите его.")
-            output_mp3_path = video_file.replace(os.path.splitext(video_file)[1], ".mp3")
-            ffmpeg_command = f'{ffmpeg_location} -i "{video_file}" -vn -ar 44100 -ac 2 -b:a 192k "{output_mp3_path}"'
-            
-            process = await asyncio.create_subprocess_shell(
-                ffmpeg_command,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-            stdout, stderr = await process.communicate()
-            passed = f"{output_mp3_path}"
-            file_size_mb = os.path.getsize(output_mp3_path) / (1024 * 1024)
-            
-            end_time = time.time()
-            ff_time = end_time - start_time
-            await status_message.edit(f"Скачивание: [✅] Обработка: [✅] Отправка: [⌛]\nРазмер файла: {file_size_mb:.2f} МБ\nПрошло времени[На скачивание]: {down_time:.2f} секунд\nПрошло времени[На обработку]: {ff_time:.2f} секунд")
-
-            if process.returncode == 0 and os.path.exists(output_mp3_path):
-                os.remove(video_file)
-                duration = 0
-                title = "YouTubeDownloader"
-                return output_mp3_path, duration, title, down_time, ff_time
-            else:
-                await status_message.edit(f"Ошибка при конвертации видео в MP3. Код ошибки: {process.returncode}")
-                return None
-        except Exception as e:
-            await status_message.edit(f"Ошибка при обработке видео: {str(e)}. {passed}")
-            await self.clean_directory(temp_dir, status_message)
-            return None
     async def clean_directory(self, dir_path, mess=None, extension=None):
         """Удаляем файлы"""
         if mess:
