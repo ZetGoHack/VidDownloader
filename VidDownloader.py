@@ -77,6 +77,7 @@ class VidDownloaderMod(loader.Module):
         """Узнаю основную информацию об обрабатывемом видео"""
         ydl_opts = {
             'no_warnings': True,
+            'cookies': '~/ytcookies/yt.txt'
         }
         e = None
         try:
@@ -122,6 +123,7 @@ class VidDownloaderMod(loader.Module):
             'format': fmt,
             'outtmpl': os.path.join(temp_dir, f'{filename_base}.%(ext)s'),
             'no_warnings': True,
+            'cookies': '~/ytcookies/yt.txt'
         }
         try:
             await inlmessage.edit(text="⌛")
@@ -237,6 +239,7 @@ class VidDownloaderMod(loader.Module):
             'format': 'bestaudio/best',
             'outtmpl': os.path.join(temp_dir, f'{filename_base}.%(ext)s'),
             'no_warnings': True,
+            'cookies': '~/ytcookies/yt.txt'
         }
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
