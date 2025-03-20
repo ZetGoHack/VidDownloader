@@ -79,7 +79,7 @@ class VidDownloaderMod(loader.Module):
             cookies = f.read()
         ydl_opts = {
             'no_warnings': True,
-            'cookies': cookies,
+            'cookiefile': cookies,
         }
         e = None
         try:
