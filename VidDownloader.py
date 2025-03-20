@@ -78,6 +78,7 @@ class VidDownloaderMod(loader.Module):
         ydl_opts = {
             'no_warnings': True,
             'cookies': '/home/ubuntu/ytcookies/yt.txt',
+            'cookiefile': '/home/ubuntu/ytcookies/yt.txt',
         }
         e = None
         try:
@@ -124,6 +125,7 @@ class VidDownloaderMod(loader.Module):
             'outtmpl': os.path.join(temp_dir, f'{filename_base}.%(ext)s'),
             'no_warnings': True,
             'cookies': '/home/ubuntu/ytcookies/yt.txt',
+            'cookiefile': '/home/ubuntu/ytcookies/yt.txt',
         }
         try:
             await inlmessage.edit(text="⌛")
@@ -240,6 +242,7 @@ class VidDownloaderMod(loader.Module):
             'outtmpl': os.path.join(temp_dir, f'{filename_base}.%(ext)s'),
             'no_warnings': True,
             'cookies': '/home/ubuntu/ytcookies/yt.txt',
+            'cookiefile': '/home/ubuntu/ytcookies/yt.txt',
         }
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
