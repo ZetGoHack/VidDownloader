@@ -75,10 +75,11 @@ class VidDownloaderMod(loader.Module):
         
     def getInfo(self, u):
         """Узнаю основную информацию об обрабатывемом видео"""
+        with open('/home/ubuntu/ytcookies/yt.txt', 'r') as f:
+            cookies = f.read()
         ydl_opts = {
             'no_warnings': True,
-            'cookies': '/home/ubuntu/ytcookies/yt.txt',
-            'cookiefile': '/home/ubuntu/ytcookies/yt.txt',
+            'cookies': cookies,
         }
         e = None
         try:
